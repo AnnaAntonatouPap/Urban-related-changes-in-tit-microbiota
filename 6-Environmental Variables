@@ -1,0 +1,76 @@
+################---------- Exploration of enviromental variables and their impact in alpha diversity--------#######################
+
+##### Check whether environmental parameters vary between urban and rural sites
+# Welch Two Sample t-test
+
+distance_ttest <- t.test(Distance_from_city_centre~Urban_status,data=meta_ttest)
+Light_ttest <- t.test(Light_complete_100m~Urban_status,data=meta_ttest)
+ISA_ttest <- t.test(ISA~Urban_status,data=meta_ttest)
+NDVI_ttest <- t.test(NDVI~Urban_status,data=meta_ttest)
+Closest_Path_ttest <- t.test(as.numeric(Closest_Path_m)~Urban_status,data=meta_ttest)
+Tree_cover_ttest <- t.test(as.numeric(Tree_cover)~Urban_status,data=meta_ttest)
+Human_presence_ttest <- t.test(as.numeric(Human_presence)~Urban_status,data=meta_ttest)
+Sound_dbC_ttest <- t.test(as.numeric(Sound_dbC)~Urban_status,data=meta_ttest)
+Closest_Road_m_ttest <- t.test(as.numeric(Closest_Road_m)~Urban_status,data=meta_ttest)
+Temperature_Celsius_ttest <- t.test(as.numeric(Temperature_Celsius)~Urban_status,data=meta_ttest)
+
+##### Test the correlations between the environmental variables
+corr_envVar <- rcorr(as.matrix(meta_corr),type=c("pearson"))
+corr_envVar$r  # correlation coef
+corr_envVar$P  # p-value
+
+# Plot correlation
+corrplot(corr_envVar_full_pvalues$r, type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45)
+dev.off()
+
+#### Analyse the interaction between alpha diversity and environmental variables
+
+# Fit LMM with response varaible the sqrShannon and predictors all the enviromental variables
+# examine the multicollinearity among all variables by using the Variance Inflation Factor (VIF) and
+sequentially remove the predictors with the largest VIF values. Repeat until all the VIF values are smaller than two
+
+# data_stats_modelVIF a dataframe with all enviromental variables scaled and sqrShannon 
+# Brood ID and sampling used as random effects
+
+model_full_shannon <- lmer(sqrt(Shannon) ~ Distance_from_city_centre + Light_complete_100m + 
+                                    Temperature_Celsius+
+                                    Human_presence  + NDVI + 
+                                    Sound_dbC + Closest_Road_m +
+                                    Tree_cover + Closest_Path_m +(1|Site/nestbox_id) , data=data_stats_modelVIF)
+vif(model_full_shannon)
+
+# Reduced model 1 without NDVI
+model_REDUCED1 <- lmer(sqrt(Shannon) ~ Distance_from_city_centre + Light_complete_100m + 
+                                    Temperature_Celsius+
+                                    Human_presence + 
+                                    Sound_dbC + Closest_Road_m +
+                                    Tree_cover + Closest_Path_m +(1|Site/nestbox_id) , data=data_stats_modelVIF)
+vif(model_REDUCED1)
+
+# Reduced mode2 1 without Closest road
+model_REDUCED2 <- lmer(sqrt(Shannon) ~ Distance_from_city_centre + Light_complete_100m + 
+                         Temperature_Celsius+
+                         Human_presence + 
+                         Sound_dbC  +
+                         Tree_cover + Closest_Path_m +(1|Site/nestbox_id) , data=data_stats_modelVIF)
+vif(model_REDUCED2)
+
+# Reduced model 3 without Sound
+model_REDUCED3 <- lmer(sqrt(Shannon) ~ Distance_from_city_centre + Light_complete_100m + 
+                         Temperature_Celsius+
+                         Human_presence + 
+                         Tree_cover + Closest_Path_m +(1|Site/nestbox_id) , data=data_stats_modelVIF)
+vif(model_REDUCED3)
+
+# Reduced model 4 without light / FINAL MODEL all vif values are below 2
+model_REDUCED4 <- lmer(sqrt(Shannon) ~ Distance_from_city_centre +  
+                         Temperature_Celsius+
+                         Human_presence + 
+                         Tree_cover + Closest_Path_m +(1|Site/nestbox_id) , data=data_stats_modelVIF)
+vif(model_REDUCED4)
+summary(model_REDUCED4)
+r.squaredGLMM(model_REDUCED4)
+tab_model(model_REDUCED4,show.se=TRUE,string.se = "std. Error")
+
+
