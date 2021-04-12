@@ -1,0 +1,139 @@
+####################------------------------------ Differential abundance analysis-------------------------#########################
+
+## A. Urban status
+
+# Make the DESeq object using phyloseq function .Use Urban status as variable
+# The order of the names determines the direction of fold change that is reported.
+# The name provided in the second element is the level that is used as baseline.
+
+dsStatus<- phyloseq_to_deseq2(data.use, ~Urban_status)
+
+# Run test for differential abundance using negative binomial Wald tets
+# calculate geometric means prior to estimate size factors
+gm_mean = function(x, na.rm=TRUE){
+  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+}
+geoMeans = apply(counts(dsStatus), 1, gm_mean)
+
+sizefactors = estimateSizeFactors(dsStatus, geoMeans = geoMeans)
+dsStatustest <-DESeq(sizefactors,test = "Wald", fitType = "parametric")
+
+## Extract the result table that contains log2FC and adj p values (FDR corrected)
+res_status <- results(dsStatustest,cooksCutoff = FALSE)
+
+## Set alpha and lfc cutoffs 
+alpha2 <- 0.05
+lfc.cutoff =0.58 # actual fold change of 1.5
+
+sigtab_status <- res_status %>%
+  data.frame() %>%
+  rownames_to_column(var="OTU") %>% 
+  as_tibble()
+# filter with alpah and lfc cutoffs  
+sigtab_status <- sigtab_status %>%
+  filter(padj <alpha2 & abs(log2FoldChange) > lfc.cutoff )
+
+taxa_names <- as.data.frame(data.use@tax_table)
+taxa_names <- cbind(taxa_names, rownames(taxa_names))
+colnames(taxa_names)[7] <- "OTU"
+
+sigtab_status <-as.data.frame(sigtab_status)
+sigtab_status <- merge(sigtab_status,taxa_names, by="OTU")
+
+# See results 
+paste( "Overall, we find", length(sigtab_status3$log2FoldChange)," significantly differentially abundant OTUs with", length(which(sigtab_status$log2FoldChange < 0)), "being significantly more abundant at Rural and", length(which(sigtab_status$log2FoldChange > 0)), "at Urban")
+
+# Prepare data for plotting 
+# create a column with OTU_ID and family taxonomy
+sigtab_species <-within(sigtab_status,ID <-paste(OTU,Family,sep="_"))
+sigtab_speciestidy <- sigtab_species %>%
+  as_tibble() %>%
+  arrange(desc(log2FoldChange))
+  
+# Edit OTU id names
+sigtab_speciestidy$ID <-gsub("OTU","",sigtab_speciestidy$ID)
+sigtab_speciestidy$ID <-gsub("_","-",sigtab_speciestidy$ID)
+sigtab_speciestidy$ID <-gsub("^0+","",sigtab_speciestidy$ID)
+
+# Plot 
+deseq_UrbStatus <-ggplot(sigtab_speciestidy, aes(reorder(ID, log2FoldChange), log2FoldChange)) +
+  geom_col(aes(fill=log2FoldChange<0), width=0.7) +
+  scale_fill_manual(values=c("TRUE"="chartreuse4","FALSE"="antiquewhite4"))+
+  coord_flip() +
+  labs(x="Family", y="log2foldchange",
+       title="") + 
+  theme_bw() +
+  #theme_minimal()+
+  theme(axis.text.y = element_text(size=8),axis.title.x = element_text(size=12),axis.title.y = element_text(size=12))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(legend.position = "none")
+deseq_UrbStatus
+
+## A. ISA categories
+
+sample_data(data.use)$ISA_category <- relevel(sample_data(data.use)$ISA_category, "Low") # relevel 
+dsISA<- phyloseq_to_deseq2(data.use, ~ISA_category)
+
+## Run test for differential abundance using negative binomial Wald tets
+# calculate geometric means prior to estimate size factors
+gm_mean = function(x, na.rm=TRUE){
+  exp(sum(log(x[x > 0]), na.rm=na.rm) / length(x))
+}
+
+geoMeans = apply(counts(dsISA), 1, gm_mean)
+
+sizefactors = estimateSizeFactors(dsISA, geoMeans = geoMeans)
+dsISAtest <-DESeq(sizefactors,test = "Wald", fitType = "parametric")
+
+## Extract the result table that contains log2FC and adj p values (FDR corrected)
+res_ISA <- results(dsISAtest,cooksCutoff = FALSE)
+
+# Set alpha and lfc cutoffs
+alpha2 <- 0.05
+lfc.cutoff =0.58 # actual fold cahnge of 1.5
+sigtab_ISA <- res_ISA %>%
+  data.frame() %>%
+  rownames_to_column(var="OTU") %>% 
+  as_tibble()
+sigtab_ISA <- sigtab_ISA %>%
+  filter(padj <alpha2 & abs(log2FoldChange) > lfc.cutoff )
+
+taxa_names <- as.data.frame(data.use@tax_table)
+taxa_names <- cbind(taxa_names, rownames(taxa_names))
+colnames(taxa_names)[7] <- "OTU"
+
+sigtab_ISA <-as.data.frame(sigtab_ISA)
+#sigtab_ISA <- cbind(as(sigtab_ISA, "data.frame"), as(taxa_names)[rownames(sigtab_ISA3), ], "matrix")
+sigtab_ISA <- merge(sigtab_ISA,taxa_names, by="OTU")
+
+# See results
+paste( "Overall, we find", length(sigtab_ISA3$log2FoldChange)," significantly differentially abundant OTUs with", 
+       length(which(sigtab_ISA3$log2FoldChange < 0)), "being significantly more abundant at low ISA and", 
+       length(which(sigtab_ISA3$log2FoldChange > 0)), "at high ISA")
+
+
+# Prepare data for plotting 
+sigtab_ISA <-within(sigtab_ISA,ID <-paste(OTU,Family,sep="_"))
+
+sigtab_ISAtidy <- sigtab_ISA %>%
+  as_tibble() %>%
+  arrange(desc(log2FoldChange))
+
+# Edit OTU id names
+sigtab_ISAtidy$ID <-gsub("OTU","",sigtab_ISAtidy$ID)
+sigtab_ISAtidy$ID <-gsub("_","-",sigtab_ISAtidy$ID)
+sigtab_ISAtidy$ID <-gsub("^0+","",sigtab_ISAtidy$ID)
+
+# plot 
+deseq_ISA <-ggplot(sigtab_ISAtidy, aes(reorder(ID, log2FoldChange), log2FoldChange)) +
+  geom_col(aes(fill=log2FoldChange<0), width=0.7) +
+  scale_fill_manual(values=c("TRUE"="chartreuse4","FALSE"="antiquewhite4"))+
+  coord_flip() +
+  labs(x="Family", y="log2foldchange",
+       title="") + 
+  theme_bw() +
+  theme(text = element_text(family = "serif"))+ ## change font to times new roman check windowsFonts()
+  theme(axis.text.y = element_text(size=8),axis.title.x = element_text(size=12),axis.title.y = element_text(size=12))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(legend.position = "none")
+deseq_ISA
