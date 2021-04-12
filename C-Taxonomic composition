@@ -1,0 +1,82 @@
+###################---------------------------------- Produce barplot with the top20 Families------------------------------------#################################
+
+prune.dat <- prune_taxa(taxa_sums(data.use) > 2, data.use) #remove less than 2%
+top20 <- names(sort(taxa_sums(prune.dat), decreasing=TRUE)[1:23])
+top20 #shows 20 results
+dat.aglo = tax_glom(prune.dat, taxrank = "Family")
+dat.trans = transform_sample_counts(dat.aglo, function(x) x/sum(x))
+
+prune.dat.two = prune_taxa(top20, dat.trans)
+dat.dataframe = psmelt(prune.dat.two)
+dat.agr = aggregate(Abundance~Sample+Corrected_site_name+Urban_status+Family, data=dat.dataframe, FUN=mean)
+
+ggplot(dat.agr, aes(x=Sample, y=Abundance, fill=Family)) + 
+  geom_bar(stat="identity",position = "fill") +
+  theme_bw() +
+  facet_grid(~Corrected_site_name, scale="free")+
+  theme(axis.text.x = element_blank(),axis.ticks = element_blank(),axis.title.x = element_blank(), axis.title.y = element_text(size=14), axis.text.y = element_text(size=12))+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank()) +
+  ylab("Relative abundance") 
+ ##################---------------------------------Abundance Tables---------------------------------------------------------------#################################### 
+ 
+ #Produce total abundance tables for Family and Phylum level for the entire dataset , saparetly for Urban, Rural, high ISA and low ISA
+ # Here you will find the tamplete for the entire dataset ( same code were used for the rest)
+
+### A. Phylum level 
+# A.1 std and mean values 
+ps.taxaFULL <- tax_glom(data.use, taxrank = "Phylum")
+ps.taxaFULL <- transform_sample_counts(ps.taxaFULL , function(x) x/sum(x))
+
+tbFULL <- psmelt(ps.taxaFULL) %>%
+  as_tibble
+tb0FULL <- tbFULL %>%
+  group_by(OTU) %>%
+  #mutate(Abundance)%>%
+  summarize(Mean = mean(Abundance), SD = sd(Abundance)) %>%
+  ungroup 
+tb2FULL <- merge(tbFULL,tb0FULL,by="OTU")
+
+## merge tb0 AND otu_tax to take the taxonomy 
+taxa_names_phylumFULL <- as.data.frame(ps.taxaFULL@tax_table)
+taxa_names_phylumFULL <- cbind(taxa_names_phylumFULL, rownames(taxa_names_phylumFULL))
+colnames(taxa_names_phylumFULL)[7] <- "OTU"
+table_phylumFULL <- as.data.frame(tb0FULL)
+
+result_STDMean_abundance_Phylum <- merge(table_phylumFULL,taxa_names_phylumFULL, by="OTU") # save it
+
+# A.2 Abundance percentages, Total readcounts
+
+## Convert the OTU and taxonomy tables into a data frame
+otus <- as.data.frame(data.use@otu_table)
+otus <- cbind(otus, rownames(otus))
+colnames(otus)[length(otus)] <- "OTU"
+tax <- as.data.frame(data.use@tax_table)
+tax <- cbind(tax, rownames(tax))
+colnames(tax)[length(tax)] <- "OTU"
+## Merge the tables
+otu_tax <- dplyr::left_join(otus, tax, by = "OTU")
+## Calculate the total number of reads for each OTU and add a column to the data frame
+otu_tax <- cbind(otu_tax, rowSums(otu_tax[,1:76]))
+colnames(otu_tax)[84] <- "TotalCount"
+
+## Make a table with phyla abundance from the unadjusted counts
+TotalPhylaCounts <- as.data.frame(aggregate(TotalCount ~ Phylum, FUN = sum, data=otu_tax))
+TotalPhylaCounts <- dplyr::arrange(TotalPhylaCounts, desc(TotalCount))
+## Calculate percentages
+TotalPhylaCounts <- cbind(TotalPhylaCounts,(TotalPhylaCounts$TotalCount*100)/sum(TotalPhylaCounts$TotalCount))
+colnames(TotalPhylaCounts)[3] <- "Abundance"
+## Count the number of OTUs for each phylum
+df <- data.frame(Phylum=character(),NoOTUs = integer(), stringsAsFactors=FALSE) 
+for (i in TotalPhylaCounts$Phylum) {
+  len <- length(which(otu_tax$Phylum == i))
+  df2 <- as.data.frame(cbind(Phylum = i, NoOTUs = len),stringsAsFactors=FALSE)
+  df <- rbind(df,df2)
+}
+df$NoOTUs <- as.numeric(df$NoOTUs)
+
+## Add this information to the abundance table
+TotalPhylaCounts <- dplyr::left_join(TotalPhylaCounts,df, tax, by = "Phylum") # save it
+colnames(TotalPhylaCounts) <- c("Phylum","Read Count", "Abundance (%)", "No of. OTUs") 
+
+## The above 2 results(TotalPhylaCounts,result_STDMean_abundance_Phylum) were merged 
+## The same precedure were used for the Family level ( NOTE: prior any calculation taxa not classified in Family level were removed) 
