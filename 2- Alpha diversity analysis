@@ -1,0 +1,32 @@
+# Calculate Shannon's diversity index, using fully filtered and un-rarefied data
+alpha.diversity <- estimate_richness(data.use, measures = c("Shannon"))
+
+# Prepare data for stats
+data_stats_alpha_abs <- cbind(sample_data(data.use), alpha.diversity)
+
+#  Check normality of the squared rooted Shannon vlues
+shapiro.test(data_stats_alpha_abs$Shannon))        # < 0.05 
+
+# Check normality of the squared rooted Shannon vlues
+shapiro.test(sqrt(data_stats_alpha_abs$Shannon))    #> 0.05 
+
+# Analyse the impact of Urbanization on Alpha diversity using 2 linear mixes models (LMM).
+# The brood ID( nestbox_id) and the sampling site were included as random effects
+# to account for the nonindependence of the samples coming from the same brood or same sampling site
+
+# Linear mixed model 1 impact of Urban status
+m1 <- lmer(sqrt(Shannon)~ Urban_status +(1|Site/nestbox_id),data=data_stats_model)
+summary(m1)
+r.squaredGLMM(m1) # calculate Rsquared
+tab_model(m1,show.se=TRUE,string.se = "std. Error") # print results as table 
+
+# Linear mixed model 2 impact of ISA ( as continious variable)
+data_stats_model$ISA2 <- scale(data_stats_model$ISA, center = TRUE, scale = TRUE) # scale ISA variable 
+m2 <- lmer(sqrt(Shannon)~ ISA2 +(1|Site/nestbox_id),data=data_stats_model)
+summary(m2)
+r.squaredGLMM(m2) # calculate Rsquared
+tab_model(m2,show.se=TRUE,string.se = "std. Error") # print results as table
+
+
+
+
