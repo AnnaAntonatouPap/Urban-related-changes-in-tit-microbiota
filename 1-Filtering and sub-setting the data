@@ -1,0 +1,58 @@
+# Load libraries 
+library(ggplot2)
+library(vegan)
+library(dplyr)
+library(scales)
+library(grid)
+library(reshape2)
+library(phyloseq)
+library(biomformat)
+library(microbiome)
+library(DESeq2)
+library(dunn.test)
+library(rstatix)
+library(ggpubr)
+library(metagenomeSeq)
+library(ape)
+library(rfm)
+library(picante)
+library("dbplyr", lib.loc="~/R/win-library/4.0")
+library("geosphere", lib.loc="~/R/win-library/4.0")
+#####################################------------------------------------------Filtering the entire dataset---------------------------------#################################################
+
+## Full data set as phyloseq object contains: taxa table, OTU table, metadata, tree ---> data_merge
+
+# Filter out OTUs that could not classified at Phylum level 
+data.1 <- subset_taxa(data_merge, !is.na(Phylum) & !Phylum %in% c("", "Bacteria_unclassified"))
+data.1 <- subset_taxa(data.1, !is.na(Phylum) & !Phylum %in% c("", "unknown_unclassified"))
+
+# Filter out, OTUs which were classified as Mitochondria or Chloroplasts
+data.2 <- data.1 %>%
+  subset_taxa(
+    ((Family != "Mitochondria") | is.na(Family)) & (Order  != "Chloroplast")
+  )
+# Filter out, OTUs which were represented by at least 1 read in 2% of the samples
+filter <- phyloseq::genefilter_sample(data.2, filterfun_sample(function(x) x >= 1), 
+                                      A = 0.02*nsamples(data.2))
+data.3 <-prune_taxa(filter,data.2)
+
+# Filter out, OTUs with fewer read counts than 0.001%
+min_reads <- 13 # calculate the 0.001% and set it as min.counts 
+data.4 <- filter_taxa(data.3, function(x) sum(x) > min_reads, TRUE)
+
+# Remove samples read count < 1000 
+data.use <- subset_samples(data.4, dna_code !="GT045" & dna_code !="GTNCE1"& 
+                         dna_code != "GT088"& dna_code !="GT060" &
+                         dna_code !="GT064" & dna_code !="GT001Rep" & 
+                         dna_code !="GT094" &  dna_code !="GT009" &  
+                         dna_code !="GT084" &  dna_code != "GT080" & 
+                         dna_code !="GT056" & dna_code !="GT020" & 
+                         dna_code !="GT038" & dna_code !="GT024")
+                         
+#########################------------------------------------------------Subsetting dataset----------------------------------------############################################
+
+# To test whether microbial communities were affected by cavity-type, we created a subset of data including the samples collected from 
+# the nestboxes (N=7) and natural cavities (N=6) located in the same urban forest
+
+
+# A subset of data containg only the nestbox samples ( N=76)
