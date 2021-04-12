@@ -24,7 +24,7 @@ corrplot(corr_envVar_full_pvalues$r, type = "upper", order = "hclust",
          tl.col = "black", tl.srt = 45)
 dev.off()
 
-#### Analyse the interaction between alpha diversity and environmental variables
+################------------------ Analyse the interaction between alpha diversity and environmental variables---------------------###################
 
 # Fit LMM with response varaible the sqrShannon and predictors all the enviromental variables
 # examine the multicollinearity among all variables by using the Variance Inflation Factor (VIF) and
@@ -74,3 +74,127 @@ r.squaredGLMM(model_REDUCED4)
 tab_model(model_REDUCED4,show.se=TRUE,string.se = "std. Error")
 
 
+### Identify the subset of environmental variables whose Euclidean distance matrix correlates maximally with the microbial 
+# distance matrix based on Bray-Curtis by BIOENV procedure
+# use CSS transform data
+# use only the variables which are in the LMM model ( Shannon- envirnmental variables )
+bioenv_meta <- data.frame(sample_data(phylo_normMG.obj))
+bioenv_meta2<-dplyr::select(bioenv_meta, c(Human_presence,Temperature_Celsius,Distance_from_city_centre,
+                                          Closest_Path_m,Tree_cover))  # keep only variables included in 
+bioenv_test <- bioenv(otu_table_mantel,bioenv_meta2,method = "spearman", index = "bray")
+sum_bioenv <-summary(bioenv_test2)
+
+#### Test correlations between microbial dissimilarity matrices based on weighted Bray-Curtis distance and distance matrices of the environmental 
+# variables based on Euclidean distance by mantel test
+
+# Use CSS data
+
+# Prepare data
+otu_table_mantel =as(otu_table(phylo_normMG.obj),"matrix") 
+# transpose matrix
+otu_table_mantel <- t(otu_table_mantel)
+#meta data
+mantel_meta<-phylo_normMG.obj@sam_data
+
+# Dissimilarity matrices ( Bray-Curtis and weighted Unifrac 
+mantel_data_bray = vegdist(otu_table_mantel, method = "bray")
+mantel_data_WUnifrac =UniFrac(phylo_normMG.obj, 
+                              weighted = TRUE, 
+                              normalized = TRUE,  
+                              parallel = FALSE, 
+                              fast = TRUE)
+# 1. Distance from the city
+dist_city  <- mantel_meta$Distance_from_city_centre
+matrix.distCity =dist(dist_city, method ="euclidean")
+# run Mantel Bray-Curtis
+mantel_distCity_b = mantel(mantel_data_bray, matrix.distCity, method = "spearman", permutations = 9999, na.rm = TRUE)
+# run Mantel Weighted UnifraC
+mantel_distCity_u = mantel(mantel_data_WUnifrac, matrix.distCity, method = "spearman", permutations = 9999, na.rm = TRUE)
+
+# 2. Light
+dist_Light  <- mantel_meta$Light_complete_100m
+matrix.distLight =dist(dist_Light, method ="euclidean")
+## Run Mantel Bray-Curtis
+mantel_distLight_b = mantel(mantel_data_bray, matrix.distLight, method = "spearman", permutations = 9999, na.rm = TRUE)
+## Run Mantel Weighted UnifraC
+mantel_distLight_u = mantel(mantel_data_WUnifrac, matrix.distLight, method = "spearman", permutations = 9999, na.rm = TRUE)
+
+# 3. ISA 
+dist_ISA  <- mantel_meta$ISA
+matrix.distISA =dist(dist_ISA, method ="euclidean")
+## Run Mantel Bray-Curtis
+mantel_distISA_b = mantel(mantel_data_bray, matrix.distISA, method = "spearman", permutations = 9999, na.rm = TRUE)
+## Run Mantel Weighted UnifraC
+mantel_distISA_u = mantel(mantel_data_WUnifrac, matrix.distISA, method = "spearman", permutations = 9999, na.rm = TRUE)
+
+# 4. NDVI
+dist_NDVI <- mantel_meta$NDVI
+matrix.distNDVI=dist(dist_NDVI, method ="euclidean")
+## Run Mantel Bray-Curtis
+mantel_distNDVI_b = mantel(mantel_data_bray, matrix.distNDVI, method = "spearman", permutations = 9999, na.rm = TRUE)
+## Run Mantel Weighted UnifraC
+mantel_distNDVI_u = mantel(mantel_data_WUnifrac, matrix.distNDVI, method = "spearman", permutations = 9999, na.rm = TRUE)
+
+# 5. Closest path 
+dist_Closest_Path <- mantel_meta$Closest_Path_m
+matrix.distClosest_Path=dist(dist_Closest_Path, method ="euclidean")
+## Run Mantel Bray-Curtis
+mantel_distClosest_Path_b = mantel(mantel_data_bray, matrix.distClosest_Path, method = "spearman", permutations = 9999, na.rm = TRUE)
+## Run Mantel Weighted UnifraC
+mantel_distClosest_Path_u = mantel(mantel_data_WUnifrac, matrix.distClosest_Path, method = "spearman", permutations = 9999, na.rm = TRUE)
+
+# 6. Tree cover
+dist_Tree_cover<- mantel_meta$Tree_cover
+matrix.distTree_cover=dist(dist_Tree_cover, method ="euclidean")
+## Run Mantel Bray-Curtis
+mantel_distTree_cover_b = mantel(mantel_data_bray, matrix.distTree_cover, method = "spearman", permutations = 9999, na.rm = TRUE)
+## Run Mantel Weighted UnifraC
+mantel_distTree_cover_u = mantel(mantel_data_WUnifrac, matrix.distTree_cover, method = "spearman", permutations = 9999, na.rm = TRUE)
+
+# 7. Human presence 
+dist_Human_presence<- mantel_meta$Human_presence
+matrix.distHuman_presence=dist(dist_Human_presence, method ="euclidean")
+## Run Mantel Bray-Curtis
+mantel_distHuman_presence_b = mantel(mantel_data_bray, matrix.distHuman_presence, method = "spearman", permutations = 9999, na.rm = TRUE)
+## Run Mantel Weighted UnifraC
+mantel_distHuman_presence_u = mantel(mantel_data_WUnifrac, matrix.distHuman_presence, method = "spearman", permutations = 9999, na.rm = TRUE)
+
+# 8. Sound 
+dist_Sound_dbC<- mantel_meta$Sound_dbC
+matrix.distSound_dbC=dist(dist_Sound_dbC, method ="euclidean")
+## Run Mantel Bray-Curtis
+mantel_distSound_dbC_b = mantel(mantel_data_bray, matrix.distSound_dbC, method = "spearman", permutations = 9999, na.rm = TRUE)
+## Run Mantel Weighted UnifraC
+mantel_distSound_dbC_u = mantel(mantel_data_WUnifrac, matrix.distSound_dbC, method = "spearman", permutations = 9999, na.rm = TRUE)
+
+# 9. Closest road
+dist_Closest_Road<- mantel_meta$Closest_Road_m
+matrix.distClosest_Road=dist(dist_Closest_Road, method ="euclidean")
+## Run Mantel Bray-Curtis
+mantel_distClosest_Road_b = mantel(mantel_data_bray, matrix.distClosest_Road, method = "spearman", permutations = 9999, na.rm = TRUE)
+## Run Mantel Weighted UnifraC
+mantel_distClosest_Road_u = mantel(mantel_data_WUnifrac, matrix.distClosest_Road, method = "spearman", permutations = 9999, na.rm = TRUE)
+
+# 10. Temperature_Celsius
+dist_Temperature_Celsius<- mantel_meta$Temperature_Celsius
+matrix.distTemperature_Celsius=dist(dist_Temperature_Celsius, method ="euclidean")
+## Run Mantel Bray-Curtis
+mantel_distTemperature_Celsius_b = mantel(mantel_data_bray, matrix.distTemperature_Celsius, method = "spearman", permutations = 9999, na.rm = TRUE)
+## Run Mantel Weighted UnifraC
+mantel_distTemperature_Celsius_u = mantel(mantel_data_WUnifrac, matrix.distTemperature_Celsius, method = "spearman", permutations = 9999, na.rm = TRUE)
+
+# 11. Geographical separation 
+geo = data.frame(mantel_meta$Longitude,mantel_meta$Latitude)
+names(geo)[names(geo) == "mantel_meta.Longitude"] <- "Longitude"
+names(geo)[names(geo) == "mantel_meta.Latitude"] <- "Latitude"
+#geo <- as.matrix(geo)
+geo$Latitude <- as.numeric(geo$Latitude)
+geo$Longitude <- as.numeric(geo$Longitude)
+d.geo = distm(geo, fun = distHaversine)
+dist.geo = as.dist(d.geo)
+## Run Mantel Weighted UnifraC
+mantel_distGeographicalSep_u = mantel(mantel_data_WUnifrac, dist.geo, method = "spearman", permutations = 9999, na.rm = TRUE)
+mantel_distGeographicalSep_u
+## Run Mantel Bray-Curtis
+mantel_distGeographicalSep_b = mantel(mantel_data_bray, dist.geo, method = "spearman", permutations = 9999, na.rm = TRUE)
+mantel_distGeographicalSep_b
