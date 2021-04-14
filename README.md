@@ -1,7 +1,7 @@
 # Urban-related-changes-in-tit-microbiota
 ## Alterations to the gut microbiota of a wild juvenile passerine in an urban mosaic
 
-Öncü Maraci1*, Michela Corsini2, Anna Antonatou-Papaioannou,3,4, Sebastian Jünemann5,6, Joanna Sudyka2,7, Irene Di Lecce2, Barbara A. Caspers1, Marta Szulkin2
+Öncü Maraci1*, Michela Corsini, Anna Antonatou-Papaioannou, Sebastian Jünemann, Joanna Sudyka, Irene Di Lecce, Barbara A. Caspers, Marta Szulkin
 
 Urbanization is a major anthropogenic perturbation that progressively alters multiple environmental parameters, 
 thereby presenting novel evolutionary challenges to wild populations. Symbiotic microorganisms residing in the 
